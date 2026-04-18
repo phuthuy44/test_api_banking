@@ -2,149 +2,157 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Demo Thanh Toán</title>
 
 <style>
-body { font-family: sans-serif; background:#f5f5f5; }
-.container { max-width: 420px; margin: auto; background:white; padding:15px; border-radius:10px; }
+body { font-family: sans-serif; background:#f5f5f5; margin:0; }
+.container { max-width:420px; margin:auto; padding:15px; }
 
-input, button {
-    width: 100%;
-    padding: 12px;
-    margin: 8px 0;
-    border-radius: 6px;
-    border: 1px solid #ccc;
+.screen { display:none; }
+.active { display:block; }
+
+.card {
+  background:white;
+  padding:15px;
+  border-radius:10px;
+  margin-top:10px;
 }
 
 button {
-    background: #28a745;
-    color: white;
-    font-weight: bold;
-    border: none;
-}
-
-.popup {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: white;
-    border-top: 1px solid #ccc;
-    padding: 15px;
-    display: none;
+  width:100%;
+  padding:12px;
+  margin-top:10px;
+  border:none;
+  border-radius:8px;
+  background:#28a745;
+  color:white;
+  font-weight:bold;
 }
 
 .bank {
-    padding: 12px;
-    border: 1px solid #ddd;
-    margin: 6px 0;
-    border-radius: 6px;
-    cursor: pointer;
+  background:white;
+  padding:12px;
+  margin-top:8px;
+  border-radius:8px;
+  cursor:pointer;
 }
 
-.bank:hover { background:#f0f0f0; }
+.center { text-align:center; }
 
-#qr img { width:100%; margin-top:10px; }
+.loading { margin-top:15px; color:gray; }
 </style>
 </head>
 
 <body>
 
 <div class="container">
-    <h3>Thanh toán tiền rác</h3>
 
-    <input id="account" value="4702205301198">
-    <input id="name" value="TRAN PHUONG VY">
-    <input id="amount" value="50000">
-    <input id="desc" value="TT RAC HD001 THANG 03">
+<!-- SCREEN 1 -->
+<div id="confirm" class="screen active">
+  <h3>Xác nhận thanh toán</h3>
 
-    <button onclick="openBanks()">Thanh toán</button>
+  <div class="card">
+    <p><b id="name"></b></p>
+    <p>Số TK: <span id="account"></span></p>
+    <p>Số tiền: <b id="amount"></b> đ</p>
+    <p>Nội dung: <span id="desc"></span></p>
+  </div>
 
-    <div id="result"></div>
+  <button onclick="goBank()">Tiếp tục</button>
 </div>
 
-<div class="popup" id="popup">
-    <h4>Chọn app thanh toán</h4>
+<!-- SCREEN 2 -->
+<div id="bank" class="screen">
+  <h3>Chọn phương thức</h3>
 
-    <div class="bank" onclick="openApp('momo://', 'MoMo')">MoMo (khuyên dùng)</div>
-    <div class="bank" onclick="openApp('vcb://', 'Vietcombank')">Vietcombank</div>
-    <div class="bank" onclick="openApp('vietinbank://', 'VietinBank')">VietinBank</div>
-    <div class="bank" onclick="openApp('tcb://', 'Techcombank')">Techcombank</div>
-    <div class="bank" onclick="openApp('acb://', 'ACB')">ACB</div>
+  <div class="bank" onclick="pay('momo')">MoMo</div>
+  <div class="bank" onclick="pay('bank')">Ngân hàng (QR)</div>
 
-    <button onclick="closePopup()">Đóng</button>
+  <button onclick="goConfirm()">Quay lại</button>
+</div>
+
+<!-- SCREEN 3 -->
+<div id="qrScreen" class="screen center">
+  <h3>Thanh toán</h3>
+
+  <div id="loading" class="loading">
+    ⏳ Đang chuyển sang app ngân hàng...<br>
+    Vui lòng mở app và quét QR
+  </div>
+
+  <img id="qrImg" width="250">
+
+  <button onclick="success()">Tôi đã thanh toán</button>
+</div>
+
+<!-- SCREEN 4 -->
+<div id="success" class="screen center">
+  <h2 style="color:green">✅ Thành công</h2>
+  <p id="result"></p>
+  <button onclick="reset()">Quay lại</button>
+</div>
+
 </div>
 
 <script>
 
-function openBanks() {
-    document.getElementById("popup").style.display = "block";
+// DATA
+const data = {
+  account: "4702205301198",
+  name: "TRAN PHUONG VY",
+  amount: "50000",
+  desc: "TT RAC HD001 THANG 03",
+  bankBIN: "970416" // ACB
+};
+
+// INIT
+document.getElementById("name").innerText = data.name;
+document.getElementById("account").innerText = data.account;
+document.getElementById("amount").innerText = Number(data.amount).toLocaleString();
+document.getElementById("desc").innerText = data.desc;
+
+// QR
+const qr = `https://img.vietqr.io/image/${data.bankBIN}-${data.account}-compact.png?amount=${data.amount}&addInfo=${encodeURIComponent(data.desc)}&accountName=${encodeURIComponent(data.name)}`;
+document.getElementById("qrImg").src = qr;
+
+// NAVIGATION
+function show(id){
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
 }
 
-function closePopup() {
-    document.getElementById("popup").style.display = "none";
+function goBank(){ show("bank"); }
+function goConfirm(){ show("confirm"); }
+
+// PAYMENT
+function pay(type){
+  show("qrScreen");
+
+  setTimeout(() => {
+    if(type === "momo"){
+      window.location.href = "momo://";
+    } else {
+      window.location.href = "https://dl.vietqr.io/pay?app=acb";
+    }
+  }, 500);
+
+  setTimeout(() => {
+    document.getElementById("loading").innerHTML =
+      "⚠️ Nếu app chưa mở,<br>hãy mở app ngân hàng và quét QR";
+  }, 2000);
 }
 
-// 🔥 core demo
-function openApp(scheme, bankName) {
-    closePopup();
-
-    let opened = false;
-
-    window.addEventListener("blur", () => {
-        opened = true;
-    });
-
-    // loading UI
-    document.getElementById("result").innerHTML = `
-        <div style="text-align:center">
-            <h3>🔄 Đang mở ${bankName}...</h3>
-        </div>
-    `;
-
-    // thử mở app
-    window.location.href = scheme;
-
-    setTimeout(() => {
-        if (!opened) {
-            // ❌ không mở được → fake success + QR
-            fakeSuccess(bankName);
-        }
-    }, 1500);
+// SUCCESS
+function success(){
+  show("success");
+  document.getElementById("result").innerText =
+    data.amount + "đ - " + data.desc;
 }
 
-// 🎯 fake thành công để demo không fail
-function fakeSuccess(bankName) {
-    const amount = document.getElementById("amount").value;
-    const desc = document.getElementById("desc").value;
-
-    document.getElementById("result").innerHTML = `
-        <div style="text-align:center">
-            <h2 style="color:green">✅ Thanh toán thành công</h2>
-            <p>Ngân hàng: ${bankName}</p>
-            <p>Số tiền: ${amount}đ</p>
-            <p>Nội dung: ${desc}</p>
-        </div>
-    `;
-
-    showQR(); // vẫn có QR thật phía dưới
-}
-
-// QR thật
-function showQR() {
-    const account = document.getElementById("account").value;
-    const name = document.getElementById("name").value;
-    const amount = document.getElementById("amount").value;
-    const desc = document.getElementById("desc").value;
-
-    const bankBIN = "970436"; // Vietcombank
-
-    const qr = `https://img.vietqr.io/image/${bankBIN}-${account}-compact.png?amount=${amount}&addInfo=${encodeURIComponent(desc)}&accountName=${encodeURIComponent(name)}`;
-
-    document.getElementById("result").innerHTML += `
-        <p><b>📱 Quét QR để thanh toán thật</b></p>
-        <img src="${qr}">
-    `;
+// RESET
+function reset(){
+  show("confirm");
 }
 
 </script>
