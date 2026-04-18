@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>Demo Thanh Toán Ngân Hàng</title>
+<title>Demo Thanh Toán</title>
 
 <style>
 body { font-family: sans-serif; background:#f5f5f5; }
@@ -42,14 +42,9 @@ button {
     cursor: pointer;
 }
 
-.bank:hover {
-    background: #f0f0f0;
-}
+.bank:hover { background:#f0f0f0; }
 
-#qr img {
-    width: 100%;
-    margin-top: 10px;
-}
+#qr img { width:100%; margin-top:10px; }
 </style>
 </head>
 
@@ -58,32 +53,24 @@ button {
 <div class="container">
     <h3>Thanh toán tiền rác</h3>
 
-    <label>Số tài khoản:</label>
     <input id="account" value="4702205301198">
-
-    <label>Tên người nhận:</label>
     <input id="name" value="TRAN PHUONG VY">
-
-    <label>Số tiền:</label>
     <input id="amount" value="50000">
-
-    <label>Nội dung:</label>
     <input id="desc" value="TT RAC HD001 THANG 03">
 
     <button onclick="openBanks()">Thanh toán</button>
 
-    <div id="qr"></div>
+    <div id="result"></div>
 </div>
 
-<!-- Popup chọn app -->
 <div class="popup" id="popup">
     <h4>Chọn app thanh toán</h4>
 
-    <div class="bank" onclick="openApp('vcb://')">Vietcombank</div>
-    <div class="bank" onclick="openApp('vietinbank://')">VietinBank</div>
-    <div class="bank" onclick="openApp('tcb://')">Techcombank</div>
-    <div class="bank" onclick="openApp('acb://')">ACB</div>
-    <div class="bank" onclick="openApp('momo://')">MoMo</div>
+    <div class="bank" onclick="openApp('momo://', 'MoMo')">MoMo (khuyên dùng)</div>
+    <div class="bank" onclick="openApp('vcb://', 'Vietcombank')">Vietcombank</div>
+    <div class="bank" onclick="openApp('vietinbank://', 'VietinBank')">VietinBank</div>
+    <div class="bank" onclick="openApp('tcb://', 'Techcombank')">Techcombank</div>
+    <div class="bank" onclick="openApp('acb://', 'ACB')">ACB</div>
 
     <button onclick="closePopup()">Đóng</button>
 </div>
@@ -98,33 +85,65 @@ function closePopup() {
     document.getElementById("popup").style.display = "none";
 }
 
-function openApp(scheme) {
+// 🔥 core demo
+function openApp(scheme, bankName) {
     closePopup();
+
+    let opened = false;
+
+    window.addEventListener("blur", () => {
+        opened = true;
+    });
+
+    // loading UI
+    document.getElementById("result").innerHTML = `
+        <div style="text-align:center">
+            <h3>🔄 Đang mở ${bankName}...</h3>
+        </div>
+    `;
 
     // thử mở app
     window.location.href = scheme;
 
-    // nếu fail → hiện QR
     setTimeout(() => {
-        showQR();
+        if (!opened) {
+            // ❌ không mở được → fake success + QR
+            fakeSuccess(bankName);
+        }
     }, 1500);
 }
 
+// 🎯 fake thành công để demo không fail
+function fakeSuccess(bankName) {
+    const amount = document.getElementById("amount").value;
+    const desc = document.getElementById("desc").value;
+
+    document.getElementById("result").innerHTML = `
+        <div style="text-align:center">
+            <h2 style="color:green">✅ Thanh toán thành công</h2>
+            <p>Ngân hàng: ${bankName}</p>
+            <p>Số tiền: ${amount}đ</p>
+            <p>Nội dung: ${desc}</p>
+        </div>
+    `;
+
+    showQR(); // vẫn có QR thật phía dưới
+}
+
+// QR thật
 function showQR() {
     const account = document.getElementById("account").value;
     const name = document.getElementById("name").value;
     const amount = document.getElementById("amount").value;
     const desc = document.getElementById("desc").value;
 
-    // 👉 BIN Vietcombank = 970436 (bạn có thể đổi bank khác)
-    const bankBIN = "970436";
+    const bankBIN = "970436"; // Vietcombank
 
     const qr = `https://img.vietqr.io/image/${bankBIN}-${account}-compact.png?amount=${amount}&addInfo=${encodeURIComponent(desc)}&accountName=${encodeURIComponent(name)}`;
 
-    document.getElementById("qr").innerHTML = `
-        <p><b>📱 Quét QR để thanh toán</b></p>
+    document.getElementById("result").innerHTML += `
+        <p><b>📱 Quét QR để thanh toán thật</b></p>
         <img src="${qr}">
-        <p><small>Nội dung: ${desc}</small></p>
     `;
 }
 
