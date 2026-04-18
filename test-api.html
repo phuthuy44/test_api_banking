@@ -1,146 +1,68 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VietQR Future Flow</title>
-
-<style>
-body { font-family:sans-serif; background:#f5f5f5; margin:0; }
-.container { max-width:420px; margin:auto; padding:15px; }
-
-.screen { display:none; }
-.active { display:block; }
-
-.card { background:#fff; padding:15px; border-radius:10px; margin-top:10px; }
-
-button {
-  width:100%; padding:12px; margin-top:10px;
-  border:none; border-radius:8px;
-  background:#28a745; color:#fff; font-weight:bold;
-}
-
-.bank { background:#fff; padding:12px; margin-top:8px; border-radius:8px; cursor:pointer; }
-.center { text-align:center; }
-.loading { margin-top:15px; color:gray; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iOS Deeplink Test ACB</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        button {
+            width: 100%;
+            padding: 15px;
+            font-size: 18px;
+            border: none;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+        .primary { background: #007bff; color: white; }
+        .qr { background: #28a745; color: white; }
+        img { width: 100%; margin-top: 10px; }
+    </style>
 </head>
-
 <body>
-<div class="container">
 
-<!-- CONFIRM -->
-<div id="confirm" class="screen active">
-  <h3>Xác nhận thanh toán</h3>
-  <div class="card">
-    <p><b id="name"></b></p>
-    <p>Số TK: <span id="account"></span></p>
-    <p>Số tiền: <b id="amount"></b> đ</p>
-    <p>Nội dung: <span id="desc"></span></p>
-  </div>
-  <button onclick="goBank()">Tiếp tục</button>
-</div>
+<h2>Test ACB Deeplink iOS</h2>
 
-<!-- BANK -->
-<div id="bank" class="screen">
-  <h3>Chọn ngân hàng</h3>
+<p>Số tiền: 50,000đ</p>
+<p>Nội dung: TESTZALO</p>
 
-  <div class="bank" onclick="pay('vcb')">Vietcombank</div>
-  <div class="bank" onclick="pay('acb')">ACB</div>
-  <div class="bank" onclick="pay('momo')">MoMo</div>
+<button class="primary" onclick="openACB()">
+    1. Mở App ACB (iOS Deeplink)
+</button>
 
-  <button onclick="goConfirm()">Quay lại</button>
-</div>
+<button class="qr" onclick="showQR()">
+    2. Hiển thị QR fallback
+</button>
 
-<!-- QR -->
-<div id="qrScreen" class="screen center">
-  <h3>Thanh toán</h3>
-
-  <div id="loading" class="loading">
-    ⏳ Đang chuyển sang app ngân hàng...
-  </div>
-
-  <img id="qrImg" width="250">
-
-  <button onclick="success()">Tôi đã thanh toán</button>
-</div>
-
-<!-- SUCCESS -->
-<div id="success" class="screen center">
-  <h2 style="color:green">✅ Thành công</h2>
-  <p id="result"></p>
-  <button onclick="reset()">Quay lại</button>
-</div>
-
-</div>
+<img id="qr" style="display:none;" />
 
 <script>
+const accountNo = "4702205301198";
+const amount = "50000";
+const note = "TESTZALO";
 
-// ===== DATA =====
-const data = {
-  account: "4702205301198",
-  bankCode: "acb",
-  bankBIN: "970416",
-  name: "TRAN PHUONG VY",
-  amount: "50000",
-  desc: "TT_RAC_HD001_T03"
-};
+// 🔥 Deeplink ACB (test)
+const deeplink = `acb://transfer?account=${accountNo}&amount=${amount}&note=${note}`;
 
-// ===== INIT =====
-document.getElementById("name").innerText = data.name;
-document.getElementById("account").innerText = data.account;
-document.getElementById("amount").innerText = Number(data.amount).toLocaleString();
-document.getElementById("desc").innerText = data.desc;
+// 🔥 QR VietQR fallback
+const qrUrl = `https://img.vietqr.io/image/970416-${accountNo}.png?amount=${amount}&addInfo=${note}`;
 
-// ===== QR =====
-const qr = `https://img.vietqr.io/image/${data.bankBIN}-${data.account}.png?amount=${data.amount}&addInfo=${encodeURIComponent(data.desc)}&accountName=${encodeURIComponent(data.name)}`;
-document.getElementById("qrImg").src = qr;
+function openACB() {
 
-// ===== NAV =====
-function show(id){
-  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
-  document.getElementById(id).classList.add("active");
-}
-
-function goBank(){ show("bank"); }
-function goConfirm(){ show("confirm"); }
-
-// ===== DEEPLINK FUTURE =====
-function buildDeepLink(app){
-  return `https://dl.vietqr.io/pay?app=${app}&ba=${data.account}@${app}&am=${data.amount}&tn=${encodeURIComponent(data.desc)}&bn=${encodeURIComponent(data.name)}`;
-}
-
-// ===== PAY =====
-function pay(app){
-
-  show("qrScreen");
-
-  const deeplink = buildDeepLink(app);
-
-  // thử mở app
-  setTimeout(() => {
+    // try open app
     window.location.href = deeplink;
-  }, 500);
 
-  // fallback
-  setTimeout(() => {
-    document.getElementById("loading").innerHTML =
-      "⚠️ Nếu app chưa mở, hãy mở app ngân hàng và quét QR bên dưới";
-  }, 2000);
+    // fallback nếu iOS không mở app
+    setTimeout(() => {
+        document.getElementById("qr").src = qrUrl;
+        document.getElementById("qr").style.display = "block";
+    }, 1500);
 }
 
-// ===== SUCCESS =====
-function success(){
-  show("success");
-  document.getElementById("result").innerText =
-    data.amount + "đ - " + data.desc;
+function showQR() {
+    document.getElementById("qr").src = qrUrl;
+    document.getElementById("qr").style.display = "block";
 }
-
-// ===== RESET =====
-function reset(){
-  show("confirm");
-}
-
 </script>
 
 </body>
