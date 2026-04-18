@@ -1,114 +1,133 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <title>Thanh Toán VietQR</title>
-    <style>
-        .container { font-family: sans-serif; max-width: 420px; margin: 20px auto; }
-        select, input, button { width: 100%; padding: 10px; margin-bottom: 12px; border-radius: 6px; border: 1px solid #ccc; }
-        button { background-color: #28a745; color: white; border: none; cursor: pointer; font-weight: bold; }
-        button:hover { background-color: #218838; }
-        .loading { font-size: 12px; color: gray; }
-        img { width: 100%; margin-top: 10px; border: 1px solid #ddd; border-radius: 8px; }
-    </style>
+<meta charset="UTF-8">
+<title>Demo Thanh Toán Ngân Hàng</title>
+
+<style>
+body { font-family: sans-serif; background:#f5f5f5; }
+.container { max-width: 420px; margin: auto; background:white; padding:15px; border-radius:10px; }
+
+input, button {
+    width: 100%;
+    padding: 12px;
+    margin: 8px 0;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+}
+
+button {
+    background: #28a745;
+    color: white;
+    font-weight: bold;
+    border: none;
+}
+
+.popup {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    border-top: 1px solid #ccc;
+    padding: 15px;
+    display: none;
+}
+
+.bank {
+    padding: 12px;
+    border: 1px solid #ddd;
+    margin: 6px 0;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.bank:hover {
+    background: #f0f0f0;
+}
+
+#qr img {
+    width: 100%;
+    margin-top: 10px;
+}
+</style>
 </head>
+
 <body>
 
 <div class="container">
-    <h3>Cổng Thanh Toán VietQR</h3>
-    
-    <label>Chọn ngân hàng:</label>
-    <select id="bankList">
-        <option value="">-- Đang tải danh sách... --</option>
-    </select>
+    <h3>Thanh toán tiền rác</h3>
 
     <label>Số tài khoản:</label>
-    <input type="text" id="accountNo" value="0123456789">
+    <input id="account" value="4702205301198">
 
     <label>Tên người nhận:</label>
-    <input type="text" id="accountName" value="NGUYEN VAN A">
+    <input id="name" value="TRAN PHUONG VY">
 
     <label>Số tiền:</label>
-    <input type="number" id="amount" value="50000">
+    <input id="amount" value="50000">
 
     <label>Nội dung:</label>
-    <input type="text" id="description" value="Thanh toan don hang">
+    <input id="desc" value="TT RAC HD001 THANG 03">
 
-    <button onclick="pay()">Thanh toán</button>
+    <button onclick="openBanks()">Thanh toán</button>
 
-    <p id="status" class="loading"></p>
+    <div id="qr"></div>
+</div>
 
-    <div id="qrContainer"></div>
+<!-- Popup chọn app -->
+<div class="popup" id="popup">
+    <h4>Chọn app thanh toán</h4>
+
+    <div class="bank" onclick="openApp('vcb://')">Vietcombank</div>
+    <div class="bank" onclick="openApp('vietinbank://')">VietinBank</div>
+    <div class="bank" onclick="openApp('tcb://')">Techcombank</div>
+    <div class="bank" onclick="openApp('acb://')">ACB</div>
+    <div class="bank" onclick="openApp('momo://')">MoMo</div>
+
+    <button onclick="closePopup()">Đóng</button>
 </div>
 
 <script>
-const bankSelect = document.getElementById('bankList');
-const status = document.getElementById('status');
-const qrContainer = document.getElementById('qrContainer');
 
-// Load danh sách ngân hàng
-async function fetchBanks() {
-    try {
-        const res = await fetch('https://api.vietqr.io/v2/banks');
-        const data = await res.json();
-
-        bankSelect.innerHTML = '<option value="">-- Chọn ngân hàng --</option>';
-
-        data.data.forEach(bank => {
-            const option = document.createElement('option');
-            option.value = JSON.stringify({
-                bin: bank.bin,
-                shortName: bank.shortName
-            });
-            option.textContent = bank.shortName + " - " + bank.name;
-            bankSelect.appendChild(option);
-        });
-
-        status.innerText = "Đã tải " + data.data.length + " ngân hàng";
-    } catch (e) {
-        status.innerText = "Lỗi tải ngân hàng!";
-        console.error(e);
-    }
+function openBanks() {
+    document.getElementById("popup").style.display = "block";
 }
 
-// Thanh toán
-function pay() {
-    const selectedBank = bankSelect.value;
-    const accountNo = document.getElementById('accountNo').value;
-    const accountName = document.getElementById('accountName').value;
-    const amount = document.getElementById('amount').value;
-    const description = document.getElementById('description').value;
+function closePopup() {
+    document.getElementById("popup").style.display = "none";
+}
 
-    if (!selectedBank || !accountNo) {
-        alert("Vui lòng nhập đủ thông tin!");
-        return;
-    }
+function openApp(scheme) {
+    closePopup();
 
-    const bank = JSON.parse(selectedBank);
-    const encodedDesc = encodeURIComponent(description);
+    // thử mở app
+    window.location.href = scheme;
 
-    // 1. Link mở trung gian (mobile sẽ mở app)
-    const payLink = `https://api.vietqr.io/v2/generate?accountNo=${accountNo}&accountName=${encodeURIComponent(accountName)}&acqId=${bank.bin}&amount=${amount}&addInfo=${encodedDesc}`;
-
-    // 2. QR fallback (luôn dùng được)
-    const qrImg = `https://img.vietqr.io/image/${bank.shortName}-${accountNo}-compact.png?amount=${amount}&addInfo=${encodedDesc}`;
-
-    // Hiển thị QR
-    qrContainer.innerHTML = `
-        <p><b>Quét QR nếu không mở được app:</b></p>
-        <img src="${qrImg}" />
-    `;
-
-    status.innerText = "Đang chuyển sang app ngân hàng...";
-
-    // Delay nhỏ để hiển thị QR trước
+    // nếu fail → hiện QR
     setTimeout(() => {
-        window.location.href = payLink;
-    }, 500);
+        showQR();
+    }, 1500);
 }
 
-// Init
-fetchBanks();
+function showQR() {
+    const account = document.getElementById("account").value;
+    const name = document.getElementById("name").value;
+    const amount = document.getElementById("amount").value;
+    const desc = document.getElementById("desc").value;
+
+    // 👉 BIN Vietcombank = 970436 (bạn có thể đổi bank khác)
+    const bankBIN = "970436";
+
+    const qr = `https://img.vietqr.io/image/${bankBIN}-${account}-compact.png?amount=${amount}&addInfo=${encodeURIComponent(desc)}&accountName=${encodeURIComponent(name)}`;
+
+    document.getElementById("qr").innerHTML = `
+        <p><b>📱 Quét QR để thanh toán</b></p>
+        <img src="${qr}">
+        <p><small>Nội dung: ${desc}</small></p>
+    `;
+}
+
 </script>
 
 </body>
