@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Thanh toán qua Ngân hàng</title>
+    <style>
+        .pay-btn {
+            padding: 15px 25px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .pay-btn:hover { background-color: #0056b3; }
+    </style>
+</head>
+<body>
+
+    <h3>Chọn ngân hàng để thanh toán:</h3>
+    
+    <!-- Nút thanh toán cho Vikki -->
+    <button class="pay-btn" onclick="openBankApp('vikki', '970406', '0123456789', 50000, 'Thanh toan don hang 01')">
+        Thanh toán qua Vikki
+    </button>
+
+    <!-- Nút thanh toán cho Agribank -->
+    <button class="pay-btn" style="background-color: #f37021;" 
+        onclick="openBankApp('agribank', '970405', '9876543210', 100000, 'Thanh toan Agribank')">
+        Thanh toán qua Agribank
+    </button>
+
+    <script>
+        function openBankApp(appId, bin, stk, amount, description) {
+            // 1. Mã hóa nội dung chuyển khoản để tránh lỗi dấu cách/ký tự đặc biệt
+            const encodedDesc = encodeURIComponent(description);
+
+            // 2. Tạo link theo chuẩn VietQR Deep Link
+            // Cấu trúc: https://vietqr.io{app_id}&ba={bin}{stk}&am={amount}&tn={description}
+            const deepLink = `https://vietqr.io${appId}&ba=${bin}${stk}&am=${amount}&tn=${encodedDesc}`;
+
+            // 3. Mở link
+            // Trên điện thoại, link này sẽ tự động hỏi mở App ngân hàng tương ứng
+            window.location.href = deepLink;
+        }
+    </script>
+
+</body>
+</html>
